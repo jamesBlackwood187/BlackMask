@@ -12,33 +12,24 @@ def GetOpenPrices(ticker,startDate, endDate):
    return priceHistory
    
 def DifferenceSeries(tickDF):
-    tickDF['dOpen'] = tickDF - tickDF.shift(1)
+    tickDF['dOpen'] = tickDF / tickDF.shift(1)
     tickDF = tickDF.dropna()
     return tickDF
 
 def logTransform(tickDF):
-    tickDF['logTransform'] = np.sign(tickDF['dOpen']) * (np.log(np.absolute(tickDF['dOpen'])) + 1)
+    tickDF['logTransform'] = np.log(tickDF['dOpen'])
     tickDF = tickDF.dropna()
     return tickDF
-
-def delayEmbed(tickDF, dimension):
-    for ind in range(len(tickDF)):
-        if ind < dimension:
-            continue
-        else:
-            delayVec = np.zeros(dimension)
-            for i in range(dimension):
-                delayVec[i] = tickDF.iloc[ind - dimension + i]['logTransform']
-            print(delayVec)
-            tickDF.iloc[ind]['Sig'] = delayVec
-    return tickDF
-            
-        
     
+def processTicker(tick):
+    df = GetOpenPrices(tick, datetime(2012,1,1), datetime(2020,1,1))
+    df = DifferenceSeries(df)
+    df = logTransform(df)
+    return df
 
 
-nug = GetOpenPrices('NUGT',datetime(2012,1,1), datetime(2020,8,19))
-nug = DifferenceSeries(nug)
-nug = logTransform(nug)
-nug = delayEmbed(nug,2)
-print(nug)
+if __name__ == "__main__":
+    tickerList = ['SPY', 'EWJ', 'VXX', 'FXI', 'JPY=X', 'EUR=X', 'SHV', 'OIL', 'GLD']
+    for ticker in tickerList:
+        tickDF = processTicker(ticker)
+        tickDF.to_csv(ticker+'.csv', sep = ',')
